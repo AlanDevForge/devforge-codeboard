@@ -89,6 +89,12 @@
 
                 <!-- Templates panel -->
             <div id="panel-templates" class="sidebar-panel">
+                <div class="template-filter-bar">
+                    <select class="df-select" id="template-category-filter" 
+                    onchange="filterTemplates()" style="width:100%;font-size:12px;">
+                    <option value="all">All Categories</option>
+                    </select>
+                </div>
                 <div class="snippet-list" id="template-list">
                     <div class="empty-list">No templates yet</div>
                 </div>

@@ -23,6 +23,7 @@ let livePresenter = null; // null = instructor, else studentId
 let studentEditing = false;
 let connectionCount = 0;
 let templates = {};
+let activeTemplateCategory = 'all';
 
 // ── SANITISE ── strip invisible/ghost characters
 function sanitise(str) {
@@ -312,26 +313,72 @@ window.saveAsTemplate = async function() {
 function renderTemplateList() {
   const list = document.getElementById('template-list');
   if (!list) return;
+
   const ids = Object.keys(templates).sort((a,b) => (templates[a].ts||0)-(templates[b].ts||0));
-  if (ids.length === 0) {
-    list.innerHTML = '<div class="empty-list">No templates yet</div>';
+
+  // Build category filter options dynamically from existing templates
+  const categories = ['all', ...new Set(ids.map(id => templates[id].category || 'General'))];
+  const filterSelect = document.getElementById('template-category-filter');
+  if (filterSelect) {
+    const current = filterSelect.value;
+    filterSelect.innerHTML = categories.map(c =>
+      `<option value="${escHtml(c)}">${c === 'all' ? 'All Categories' : escHtml(c)}</option>`
+    ).join('');
+    // Restore selected value if it still exists
+    if (categories.includes(current)) filterSelect.value = current;
+    else filterSelect.value = 'all';
+  }
+
+  // Filter by category
+  let filtered = ids;
+  if (activeTemplateCategory !== 'all') {
+    filtered = ids.filter(id => (templates[id].category || 'General') === activeTemplateCategory);
+  }
+
+  // Students never see hidden templates
+  if (role === 'student') {
+    filtered = filtered.filter(id => !templates[id].hidden);
+  }
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-list">No templates in this category</div>';
     return;
   }
-  list.innerHTML = ids.map(id => {
+
+  list.innerHTML = filtered.map(id => {
     const t = templates[id];
+    const isHidden = t.hidden || false;
+
+    const visibilityBtn = role === 'instructor'
+      ? `<button class="t-visibility-btn" onclick="toggleTemplateVisibility('${id}')"
+           title="${isHidden ? 'Show to students' : 'Hide from students'}">
+           ${isHidden ? '🙈' : '👁️'}
+         </button>`
+      : '';
+
+    const hiddenBadge = (role === 'instructor' && isHidden)
+      ? `<span class="t-hidden-badge">hidden</span>`
+      : '';
+
     const instructorActions = role === 'instructor' ? `
       <button class="btn btn-primary btn-sm" onclick="publishTemplate('${id}')">Publish</button>
       <button class="btn btn-danger btn-sm" onclick="deleteTemplate('${id}')">Delete</button>
     ` : '';
+
     const studentActions = role === 'student' ? `
       <button class="btn btn-ghost btn-sm" onclick="copyTemplate('${id}')">Copy</button>
       <button class="btn btn-purple btn-sm" onclick="loadTemplateIntoEditor('${id}')">Load into Editor</button>
     ` : '';
-    return `<div class="template-item">
-      <div class="t-name">${escHtml(t.name || 'Untitled')}</div>
+
+    return `<div class="template-item ${isHidden ? 'hidden-template' : ''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+        <div class="t-name" style="flex:1;min-width:0;">${escHtml(t.name || 'Untitled')}</div>
+        ${visibilityBtn}
+      </div>
       <div class="t-meta">
         <span class="sn-lang-tag">${escHtml(t.language || 'text')}</span>
         <span class="t-category">${escHtml(t.category || 'General')}</span>
+        ${hiddenBadge}
       </div>
       <div class="template-actions">
         ${instructorActions}
@@ -340,6 +387,20 @@ function renderTemplateList() {
     </div>`;
   }).join('');
 }
+
+window.filterTemplates = function() {
+  const select = document.getElementById('template-category-filter');
+  activeTemplateCategory = select ? select.value : 'all';
+  renderTemplateList();
+};
+
+window.toggleTemplateVisibility = async function(id) {
+  const t = templates[id];
+  if (!t) return;
+  const newHidden = !t.hidden;
+  await update(ref(db, 'templates/' + id), { hidden: newHidden });
+  toast(newHidden ? 'Template hidden from students' : 'Template now visible to students', 'info');
+};
 
 window.publishTemplate = async function(id) {
   const t = templates[id];

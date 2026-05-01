@@ -801,3 +801,38 @@ html, body {
   gap: 5px;
   margin-top: 7px;
 }
+
+/* ── TEMPLATE FILTER BAR ── */
+.template-filter-bar {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ── TEMPLATE VISIBILITY TOGGLE ── */
+.t-visibility-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: opacity 0.15s;
+}
+.t-visibility-btn:hover { opacity: 0.7; }
+
+.template-item.hidden-template {
+  opacity: 0.4;
+  border-style: dashed;
+}
+
+.t-hidden-badge {
+  font-size: 9px;
+  background: #3a3a3a;
+  color: var(--text-muted);
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
