@@ -22,6 +22,7 @@ let queue = {};
 let livePresenter = null; // null = instructor, else studentId
 let studentEditing = false;
 let connectionCount = 0;
+let templates = {};
 
 // ── SANITISE ── strip invisible/ghost characters
 function sanitise(str) {
@@ -136,6 +137,13 @@ function subscribeToAll() {
         }
       }
     }
+
+    // Templates — available to all
+    onValue(ref(db, 'templates'), snap => {
+        templates = snap.val() || {};
+        renderTemplateList();
+    });
+
     updateStatusBar();
   });
 
@@ -196,6 +204,7 @@ function renderSnippetList() {
   const ids = Object.keys(snippets).sort((a,b) => (snippets[a].ts||0)-(snippets[b].ts||0));
   if (ids.length === 0) {
     list.innerHTML = '<div class="empty-list">No snippets yet</div>';
+    document.getElementById('snippet-list-header').style.display = 'none';
     return;
   }
   list.innerHTML = ids.map(id => {
@@ -203,15 +212,191 @@ function renderSnippetList() {
     const isActive = id === activeSnippetId;
     const whoClass = s.author === 'instructor' ? 'sn-who-instructor' : 'sn-who-student';
     const whoLabel = s.author === 'instructor' ? 'You' : s.authorName || 'Student';
-    return `<div class="snippet-item ${isActive ? 'active' : ''}" onclick="selectSnippet('${id}')">
+    const checkbox = role === 'instructor'
+      ? `<input type="checkbox" class="snippet-checkbox" onclick="toggleSnippetSelect(event, '${id}')" ${isActive ? '' : ''}>`
+      : '';
+    return `<div class="snippet-item ${isActive ? 'active' : ''}" id="si-${id}" onclick="selectSnippet('${id}')">
       <div class="sn-name">${escHtml(s.name || 'Untitled')}</div>
       <div class="sn-meta">
         <span class="sn-lang-tag">${escHtml(s.language || 'text')}</span>
         <span class="sn-who-tag ${whoClass}">${escHtml(whoLabel)}</span>
       </div>
+      ${checkbox}
     </div>`;
   }).join('');
 }
+
+let selectedSnippets = new Set();
+
+window.toggleSnippetSelect = function(e, id) {
+  e.stopPropagation(); // prevent snippet from opening
+  if (e.target.checked) {
+    selectedSnippets.add(id);
+    document.getElementById('si-' + id).classList.add('selected');
+  } else {
+    selectedSnippets.delete(id);
+    document.getElementById('si-' + id).classList.remove('selected');
+  }
+  document.getElementById('snippet-list-header').style.display =
+    selectedSnippets.size > 0 ? 'block' : 'none';
+};
+
+window.deleteSelectedSnippets = function() {
+  if (selectedSnippets.size === 0) return;
+  showModal(
+    'Delete Selected Snippets',
+    `Delete ${selectedSnippets.size} snippet${selectedSnippets.size !== 1 ? 's' : ''}? This cannot be undone.`,
+    [
+      { label: 'Cancel', action: closeModal, style: 'btn-ghost' },
+      { label: 'Delete', action: async () => {
+          for (const id of selectedSnippets) {
+            await remove(ref(db, 'snippets/' + id));
+          }
+          selectedSnippets.clear();
+          document.getElementById('snippet-list-header').style.display = 'none';
+          closeModal();
+          toast('Snippets deleted', 'success');
+        }, style: 'btn-danger'
+      }
+    ]
+  );
+};
+
+window.saveAsTemplate = async function() {
+  const code = role === 'instructor'
+    ? sanitise(document.getElementById('code-editor').value)
+    : null;
+
+  if (!code || !code.trim()) {
+    toast('Nothing to save as a template', 'error');
+    return;
+  }
+
+  let language = document.getElementById('lang-select').value;
+  if (language === 'auto') {
+    const result = hljs.highlightAuto(code);
+    language = result.language || 'plaintext';
+  }
+
+  const name = document.getElementById('snippet-name-input').value.trim() ||
+    'Template ' + (Object.keys(templates).length + 1);
+
+  // Ask for category
+  showModal(
+    'Save as Template',
+    'Enter a category for this template (e.g. "C# Boilerplate", "HTML Starter"):',
+    [
+      { label: 'Cancel', action: closeModal, style: 'btn-ghost' },
+      { label: 'Save', action: async () => {
+          const catInput = document.getElementById('modal-category-input');
+          const category = catInput ? catInput.value.trim() : 'General';
+          const newRef = push(ref(db, 'templates'));
+          await set(newRef, {
+            code,
+            language,
+            name,
+            category: category || 'General',
+            ts: Date.now()
+          });
+          closeModal();
+          toast('Template saved permanently', 'success');
+          switchSidebarTab('templates');
+        }, style: 'btn-primary'
+      }
+    ],
+    // Extra input field for category
+    '<input id="modal-category-input" class="df-text-input" placeholder="Category (e.g. C# Boilerplate)" style="margin-top:10px;width:100%;" />'
+  );
+};
+
+function renderTemplateList() {
+  const list = document.getElementById('template-list');
+  if (!list) return;
+  const ids = Object.keys(templates).sort((a,b) => (templates[a].ts||0)-(templates[b].ts||0));
+  if (ids.length === 0) {
+    list.innerHTML = '<div class="empty-list">No templates yet</div>';
+    return;
+  }
+  list.innerHTML = ids.map(id => {
+    const t = templates[id];
+    const instructorActions = role === 'instructor' ? `
+      <button class="btn btn-primary btn-sm" onclick="publishTemplate('${id}')">Publish</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteTemplate('${id}')">Delete</button>
+    ` : '';
+    const studentActions = role === 'student' ? `
+      <button class="btn btn-ghost btn-sm" onclick="copyTemplate('${id}')">Copy</button>
+      <button class="btn btn-purple btn-sm" onclick="loadTemplateIntoEditor('${id}')">Load into Editor</button>
+    ` : '';
+    return `<div class="template-item">
+      <div class="t-name">${escHtml(t.name || 'Untitled')}</div>
+      <div class="t-meta">
+        <span class="sn-lang-tag">${escHtml(t.language || 'text')}</span>
+        <span class="t-category">${escHtml(t.category || 'General')}</span>
+      </div>
+      <div class="template-actions">
+        ${instructorActions}
+        ${studentActions}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.publishTemplate = async function(id) {
+  const t = templates[id];
+  if (!t) return;
+  const newRef = push(ref(db, 'snippets'));
+  await set(newRef, {
+    code: t.code,
+    language: t.language,
+    name: t.name,
+    author: 'instructor',
+    ts: Date.now()
+  });
+  await set(ref(db, 'livePresenter'), { id: 'instructor' });
+  await set(ref(db, 'liveCode'), {
+    code: t.code,
+    language: t.language,
+    name: t.name,
+    presenterName: 'Instructor'
+  });
+  switchSidebarTab('session');
+  toast('Template published to students', 'success');
+};
+
+window.deleteTemplate = function(id) {
+  showModal(
+    'Delete Template',
+    'This will permanently delete this template. Are you sure?',
+    [
+      { label: 'Cancel', action: closeModal, style: 'btn-ghost' },
+      { label: 'Delete', action: async () => {
+          await remove(ref(db, 'templates/' + id));
+          closeModal();
+          toast('Template deleted', 'success');
+        }, style: 'btn-danger'
+      }
+    ]
+  );
+};
+
+window.copyTemplate = function(id) {
+  const t = templates[id];
+  if (!t) return;
+  navigator.clipboard.writeText(sanitise(t.code)).then(() => {
+    toast('Template code copied to clipboard', 'success');
+  });
+};
+
+window.loadTemplateIntoEditor = function(id) {
+  const t = templates[id];
+  if (!t) return;
+  startStudentEdit('blank');
+  document.getElementById('student-editor').value = t.code;
+  document.getElementById('student-snippet-name').value = t.name;
+  document.getElementById('student-lang-select').value = t.language || 'auto';
+  switchSidebarTab('session');
+  toast('Template loaded into your editor', 'success');
+};
 
 window.selectSnippet = function(id) {
   if (role === 'student' && studentEditing) return;
@@ -282,6 +467,13 @@ function showLiveCode(code, language, name, presenterName) {
 
   document.getElementById('btn-edit-copy').style.display = '';
 }
+
+window.switchSidebarTab = function(tab) {
+  document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.sidebar-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+};
 
 // ── INSTRUCTOR: PUBLISH ──
 window.publishSnippet = async function() {
@@ -608,9 +800,12 @@ window.clearSession = function() {
   );
 };
 
-function showModal(title, body, buttons) {
+function showModal(title, body, buttons, extraHtml = '') {
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-body').textContent = body;
+  if (extraHtml) {
+    document.getElementById('modal-body').insertAdjacentHTML('afterend', extraHtml);
+  }
   const actions = document.getElementById('modal-actions');
   actions.innerHTML = '';
   buttons.forEach(b => {
@@ -625,6 +820,8 @@ function showModal(title, body, buttons) {
 
 function closeModal() {
   document.getElementById('modal-overlay').classList.remove('visible');
+  const extra = document.getElementById('modal-category-input');
+  if (extra) extra.parentNode.removeChild(extra);
 }
 
 // ── PRESENT QUEUE ──

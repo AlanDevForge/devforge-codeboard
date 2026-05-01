@@ -677,3 +677,127 @@ html, body {
   padding: 16px 0;
   font-style: italic;
 }
+
+/* ── SIDEBAR TABS ── */
+.sidebar-tabs {
+  display: flex;
+  gap: 0;
+  width: 100%;
+}
+
+.sidebar-tab {
+  flex: 1;
+  padding: 7px 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-ui);
+}
+
+.sidebar-tab:hover:not(.active) { color: var(--text-secondary); }
+
+.sidebar-tab.active {
+  color: var(--forge-orange);
+  border-bottom-color: var(--forge-orange);
+}
+
+/* ── SIDEBAR PANELS ── */
+.sidebar-panel {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar-panel.active {
+  display: flex;
+}
+
+/* ── SNIPPET LIST HEADER (delete selected) ── */
+.snippet-list-header {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ── SNIPPET CHECKBOX ── */
+.snippet-item {
+  position: relative;
+}
+
+.snippet-checkbox {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  accent-color: var(--forge-orange);
+  cursor: pointer;
+  display: none;
+}
+
+.snippet-item:hover .snippet-checkbox,
+.snippet-checkbox:checked {
+  display: block;
+}
+
+.snippet-item.selected {
+  background: #3a2000;
+  border-color: #6a3800;
+}
+
+.snippet-item.selected .snippet-checkbox {
+  display: block;
+}
+
+/* ── TEMPLATE ITEMS ── */
+.template-item {
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  transition: border-color 0.15s;
+}
+
+.template-item:hover { border-color: var(--border-bright); }
+
+.template-item .t-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.template-item .t-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.template-item .t-category {
+  font-size: 10px;
+  background: var(--amber-dim);
+  color: var(--forge-amber);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.template-actions {
+  display: flex;
+  gap: 5px;
+  margin-top: 7px;
+}

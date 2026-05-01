@@ -69,14 +69,31 @@
         <div id="workspace">
 
             <!-- LEFT: Snippet history -->
-            <div class="snippet-sidebar">
+        <div class="snippet-sidebar">
             <div class="sidebar-header">
-                <div class="sidebar-title">Snippet History</div>
+                <div class="sidebar-tabs">
+                    <button class="sidebar-tab active" id="tab-session" onclick="switchSidebarTab('session')">Session</button>
+                    <button class="sidebar-tab" id="tab-templates" onclick="switchSidebarTab('templates')">Templates</button>
+                </div>
             </div>
-            <div class="snippet-list" id="snippet-list">
-                <div class="empty-list">No snippets yet</div>
+
+                <!-- Session snippets panel -->
+            <div id="panel-session" class="sidebar-panel active">
+                <div class="snippet-list-header" id="snippet-list-header" style="display:none;">
+                    <button class="btn btn-danger btn-sm" onclick="deleteSelectedSnippets()">Delete Selected</button>
+                </div>
+                <div class="snippet-list" id="snippet-list">
+                    <div class="empty-list">No snippets yet</div>
+                </div>
             </div>
+
+                <!-- Templates panel -->
+            <div id="panel-templates" class="sidebar-panel">
+                <div class="snippet-list" id="template-list">
+                    <div class="empty-list">No templates yet</div>
+                </div>
             </div>
+        </div>
 
             <!-- CENTRE: Main panel -->
             <div class="main-panel">
@@ -108,6 +125,7 @@
                 <button class="btn btn-danger btn-sm" onclick="clearSession()">Clear Session</button>
                 <button class="btn btn-ghost btn-sm" onclick="clearEditor()">Clear Code</button>
                 <button class="btn btn-primary" onclick="publishSnippet()" id="publish-btn">Publish to Students</button>
+                <button class="btn btn-ghost btn-sm" onclick="saveAsTemplate()" id="save-template-btn">Save as Template</button>
             </div>
 
             <!-- Student view toolbar -->
