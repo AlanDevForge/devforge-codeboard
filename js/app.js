@@ -79,7 +79,6 @@ function debugConnections() {
 
 // ── ENTER WORKSPACE ──
 function enterWorkspace() {
-    console.log('enterWorkspace called, role:', role);
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('workspace').classList.add('active');
 
@@ -93,9 +92,18 @@ function enterWorkspace() {
     document.getElementById('instructor-toolbar').style.display = 'flex';
     document.getElementById('right-sidebar').style.display = 'flex';
     document.getElementById('connection-display').style.display = 'flex';
-    document.getElementById('no-snippet-text').textContent = 'Paste code above and publish to students.';
-    document.getElementById('code-editor').style.display = 'block';
     document.getElementById('no-snippet-msg').style.display = 'none';
+    document.getElementById('code-editor').style.display = 'flex';
+    document.getElementById('code-editor').style.flex = '1';
+    document.getElementById('code-wrapper').style.display = 'flex';
+    document.getElementById('code-wrapper').style.flexDirection = 'column';
+
+    // Hide placeholder as soon as instructor starts typing
+    document.getElementById('code-editor').addEventListener('input', () => {
+      const hasContent = document.getElementById('code-editor').value.trim().length > 0;
+      document.getElementById('no-snippet-msg').style.display = 'none';
+    });
+
     // Focus editor
     setTimeout(() => document.getElementById('code-editor').focus(), 100);
   } else {

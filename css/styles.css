@@ -400,6 +400,7 @@ html, body {
 
 #code-editor {
   flex: 1;
+  min-height: 0;
   background: #1a1a1a;
   color: #d4d4d4;
   font-family: var(--font-code);
