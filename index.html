@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>DevForge CodeBoard</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/x86asm.min.js"></script>
+
+        <link rel="stylesheet" href="css/styles.css">
+    </head>
+    <body>
+        <div id="app">
+
+        <!-- HEADER -->
+        <header class="header">
+            <div class="logo">
+            <div class="logo-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+                <line x1="12" y1="2" x2="12" y2="22" stroke-width="1.5" stroke-dasharray="3 2"></line>
+                </svg>
+            </div>
+            <div class="logo-wordmark">
+                <span class="logo-name">DEVFORGE</span>
+                <span class="logo-product">CodeBoard</span>
+            </div>
+            </div>
+            <div class="header-right">
+            <div class="connection-count" id="connection-display" style="display:none;">
+                <span class="connection-dot"></span>
+                <span id="connection-text">0 connected</span>
+            </div>
+            <span class="pill pill-live" id="live-pill" style="display:none;">LIVE</span>
+            <span class="pill" id="role-pill" style="display:none;"></span>
+            </div>
+        </header>
+
+        <!-- LOGIN SCREEN -->
+        <div id="login-screen">
+            <div class="login-card">
+            <div class="login-logo-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+                <line x1="12" y1="2" x2="12" y2="22" stroke-width="1.5" stroke-dasharray="3 2"></line>
+                </svg>
+            </div>
+            <div class="login-title">DEVFORGE</div>
+            <div class="login-sub">CodeBoard — Live Code Sharing</div>
+
+            <div class="login-btn-group">
+                <button class="login-btn instructor-btn" onclick="selectRole('instructor')">Enter as Instructor</button>
+                <button class="login-btn student-btn" onclick="selectRole('student')">Enter as Student</button>
+            </div>
+
+            <div class="name-input-group" id="name-group">
+                <input class="df-text-input" id="student-name-input" placeholder="Your first name..." maxlength="30" />
+                <button class="login-btn instructor-btn" onclick="enterAsStudent()">Join Session</button>
+            </div>
+            </div>
+        </div>
+
+        <!-- MAIN WORKSPACE -->
+        <div id="workspace">
+
+            <!-- LEFT: Snippet history -->
+            <div class="snippet-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">Snippet History</div>
+            </div>
+            <div class="snippet-list" id="snippet-list">
+                <div class="empty-list">No snippets yet</div>
+            </div>
+            </div>
+
+            <!-- CENTRE: Main panel -->
+            <div class="main-panel">
+
+            <!-- Instructor toolbar -->
+            <div class="toolbar" id="instructor-toolbar" style="display:none;">
+                <span class="toolbar-label">Lang:</span>
+                <select class="df-select" id="lang-select" onchange="onLangChange()">
+                <option value="auto">Auto-detect</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="python">Python</option>
+                <option value="java">Java</option>
+                <option value="csharp">C#</option>
+                <option value="cpp">C / C++</option>
+                <option value="html">HTML</option>
+                <option value="css">CSS</option>
+                <option value="sql">SQL</option>
+                <option value="php">PHP</option>
+                <option value="bash">Bash / Shell</option>
+                <option value="json">JSON</option>
+                <option value="xml">XML</option>
+                <option value="markdown">Markdown</option>
+                <option value="x86asm">Assembly (x86)</option>
+                </select>
+                <input class="df-input" id="snippet-name-input" placeholder="Snippet name (e.g. forEach loop)" maxlength="50" />
+                <div class="spacer"></div>
+                <button class="btn btn-danger btn-sm" onclick="clearSnippets()">Clear Snippets</button>
+                <button class="btn btn-danger btn-sm" onclick="clearSession()">Clear Session</button>
+                <button class="btn btn-ghost btn-sm" onclick="clearEditor()">Clear Code</button>
+                <button class="btn btn-primary" onclick="publishSnippet()" id="publish-btn">Publish to Students</button>
+            </div>
+
+            <!-- Student view toolbar -->
+            <div class="toolbar" id="student-view-toolbar" style="display:none;">
+                <span id="viewing-label" style="font-size:13px;color:var(--forge-orange);font-weight:600;">Waiting for instructor...</span>
+                <span id="viewing-lang" style="font-size:11px;color:var(--text-muted);margin-left:4px;"></span>
+                <div class="spacer"></div>
+                <button class="btn btn-ghost btn-sm" onclick="backToLive()" id="btn-back-live" style="display:none;">↩ Back to Live</button>
+                <button class="btn btn-ghost btn-sm" onclick="startStudentEdit('copy')" id="btn-edit-copy" style="display:none;">Edit a Copy</button>
+                <button class="btn btn-ghost btn-sm" onclick="startStudentEdit('blank')" id="btn-edit-blank">Write My Own</button>
+            </div>
+
+            <!-- Student editing toolbar -->
+            <div class="student-editor-toolbar" id="student-editor-toolbar">
+                <span style="font-size:12px;color:#9988ff;font-weight:600;">✎ Your Editor</span>
+                <select class="df-select" id="student-lang-select" style="font-size:12px;padding:4px 8px;">
+                <option value="auto">Auto-detect</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="python">Python</option>
+                <option value="java">Java</option>
+                <option value="csharp">C#</option>
+                <option value="cpp">C / C++</option>
+                <option value="html">HTML</option>
+                <option value="css">CSS</option>
+                <option value="sql">SQL</option>
+                <option value="php">PHP</option>
+                <option value="bash">Bash / Shell</option>
+                <option value="json">JSON</option>
+                <option value="xml">XML</option>
+                <option value="markdown">Markdown</option>
+                <option value="x86asm">Assembly (x86)</option>
+                </select>
+                <input class="df-input" id="student-snippet-name" placeholder="Your snippet name..." maxlength="50" style="width:160px;font-size:12px;padding:4px 10px;" />
+                <div class="spacer"></div>
+                <button class="btn btn-ghost btn-sm" onclick="cancelStudentEdit()">Cancel</button>
+                <button class="btn btn-purple btn-sm" onclick="requestPresent()">Present to Class</button>
+            </div>
+
+            <!-- Code area -->
+            <div class="code-wrapper" id="code-wrapper">
+
+                <!-- Instructor: editable textarea -->
+                <textarea id="code-editor"
+                style="display:none;"
+                placeholder="// Paste or type your code here...
+        // Language will be auto-detected on paste.
+        // Click 'Publish to Students' to push it live."
+                onpaste="handlePaste(event)"
+                spellcheck="false"
+                ></textarea>
+
+                <!-- Student/read-only: highlighted display -->
+                <div class="code-display-wrap" id="code-display-wrap" style="display:none;">
+                <button class="copy-btn-float" onclick="copyCode()" id="copy-btn">Copy</button>
+                <pre id="code-display"><code id="code-display-inner"></code></pre>
+                </div>
+
+                <!-- Student editor -->
+                <textarea id="student-editor"
+                style="display:none;"
+                placeholder="// Write your code here..."
+                spellcheck="false"
+                class="code-editor"
+                onpaste="handleStudentPaste(event)"
+                ></textarea>
+
+                <!-- Empty / waiting state -->
+                <div class="no-snippet-msg" id="no-snippet-msg">
+                <div class="no-snippet-icon">⌨</div>
+                <span id="no-snippet-text">Waiting for instructor to publish a snippet...</span>
+                </div>
+            </div>
+
+            <!-- Status bar -->
+            <div class="status-bar">
+                <div class="status-item">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="status-conn-text">Connecting...</span>
+                </div>
+                <span id="status-snippets"></span>
+                <span id="status-flags" style="color:var(--forge-orange);"></span>
+                <div class="spacer"></div>
+                <span id="status-session" style="color:var(--text-muted);"></span>
+            </div>
+            </div>
+
+            <!-- RIGHT SIDEBAR (instructor) -->
+            <div class="right-sidebar" id="right-sidebar" style="display:none;">
+
+            <!-- Flags -->
+            <div class="rs-section" style="flex:1;">
+                <div class="rs-head">
+                <span class="rs-title">Flags Raised</span>
+                <button class="btn btn-danger btn-sm" onclick="clearAllFlags()" id="clear-flags-btn" style="display:none;">Clear All</button>
+                </div>
+                <div class="rs-body" id="flags-list">
+                <div class="empty-list" id="flags-empty">No flags raised</div>
+                </div>
+            </div>
+
+            <!-- Present queue -->
+            <div class="rs-section" style="flex:1;">
+                <div class="rs-head">
+                <span class="rs-title">Present Queue</span>
+                <button class="btn btn-ghost btn-sm" onclick="reclaimBoard()" id="reclaim-btn" style="display:none;">Reclaim Board</button>
+                </div>
+                <div class="rs-body" id="queue-list">
+                <div class="empty-list" id="queue-empty">No students queued</div>
+                </div>
+            </div>
+
+            </div>
+
+            <!-- RIGHT SIDEBAR (student) -->
+            <div class="right-sidebar" id="student-right-sidebar" style="display:none;">
+
+            <div class="rs-section">
+                <div class="rs-head"><span class="rs-title">Presentation</span></div>
+                <div class="presenting-banner" id="presenting-banner">
+                Your code is currently being shown to the class
+                </div>
+                <div style="padding:0 10px 10px;">
+                <div id="present-status" style="font-size:12px;color:var(--text-muted);padding:6px 4px;">Not presenting</div>
+                </div>
+            </div>
+
+            <div class="rs-section flex1">
+                <div class="rs-head"><span class="rs-title">Raise a Flag</span></div>
+                <div class="flag-panel">
+                <textarea class="flag-textarea" id="flag-message" placeholder="Optional — describe your question or issue..."></textarea>
+                <button class="btn btn-danger" style="width:100%;margin-top:8px;font-size:13px;" onclick="raiseFlag()">⚑ Raise Flag</button>
+                <div style="font-size:10px;color:var(--text-muted);margin-top:6px;text-align:center;">Your name will be shown to the instructor</div>
+                </div>
+            </div>
+
+            </div>
+
+        </div>
+        </div>
+
+        <!-- TOAST CONTAINER -->
+        <div class="toast-container" id="toast-container"></div>
+
+        <!-- MODAL -->
+        <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <div class="modal-title" id="modal-title"></div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-actions" id="modal-actions"></div>
+        </div>
+        </div>
+
+        <script type="module" src="js/app.js"></script>
+
+    </body>
+</html>
